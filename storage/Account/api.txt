@@ -1,0 +1,89 @@
+POST /users                 회원가입
+POST /auth/Login            로그인
+GET /auth/me                개인정보보기
+PUT /auth/me                개인정보수정
+GET /auth/refresh           토큰갱신
+
+GET /hospitals/{hospital_id}            병원정보보기
+GET /hospitals                          병원리스트보기
+GET /hospitals/{index}                  병원리스트보기 (페이징)
+GET /hospitals/{category}               병원리스트보기 (카테고리)
+GET /hospitals/{category}/{index}       병원리스트보기 (카테고리,페이징)
+
+GET /hospitals/search/                      병원검색
+GET /hospitals/search/{index}               병원검색 (페이징)
+GET /hospitals/{category}/search            병원검색 (카테고리)
+GET /hospitals/{category}/search/{index}    병원검색 (카테고리,페이징)
+
+
+POST /hospitals/reservations/{hospital_id}        접수하기
+GET /hospitals/reservations/{hospital_id}         접수목록보기
+DELETE /hospitals/reservations/{hospital_id}      접수취소
+
+
+
+
+POST /reviews/{hospital_id}             후기작성
+GET /reviews/{hospital_id}              후기보기
+PUT /reviews/{hospital_id}/{index}      후기수정
+DELETE /reviews/{hospital_id}/{index}   후기삭제
+
+
+
+
+
+
+POST /users
+{
+    "userid" : "sinb57",
+    "userpw" : "cXdlMTIzIUAj", // base64Encode(pw),
+    "username" : "강승지",
+    "phonenumber" : "010-1237-9116"
+}
+{
+    "success" : true,
+    "message" : null,
+    "errors" : null,
+    "data" : null
+}
+
+POST /auth/Login
+{
+    "userid" : "sinb57",
+    "userpw" : "cXdlMTIzIUAj", // base64Encode(pw),
+}
+{
+    "success" : true,
+    "message" : null,
+    "errors" : null,
+    "data" : {
+        "token" : "fjg23fjase879123fxcjhg"
+    }
+}
+
+GET /auth/me
+{
+    "token" : "fjg23fjase879123fxcjhg"
+}
+{
+    "success" : true,
+    "message" : null,
+    "errors" : null,
+    "data" : {
+        "username" : "강승지",
+        "phonenumber" : "010-1237-9116"
+    }
+}
+
+GET /auth/refresh
+{
+    "token" : "fjg23fjase879123fxcjhg"
+}
+{
+    "success" : true,
+    "message" : null,
+    "errors" : null,
+    "data" : {
+        "token" : "13vb54ty6fnfds4fgxscz"
+    }
+}
