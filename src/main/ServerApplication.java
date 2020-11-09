@@ -4,38 +4,73 @@ import main.domain.Hospital;
 import main.domain.Manageable;
 import main.domain.Patient;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.io.*;
+import java.util.*;
 
 public class ServerApplication {
 
     private Scanner scan = new Scanner(System.in);
-    private List<Manageable> informationList = new ArrayList<>();
+    public static HashMap<String, Patient> patientList = new HashMap<>();
+    public static ArrayList<Hospital> hospitalList = new ArrayList<>();
+    public ArrayList<String> patientIdList = new ArrayList<>();
+    public ArrayList<String> hospitalIdList = new ArrayList<>();
 
-    private void run() {
-
-    }
-
-    private void readAll(String fileName) {
-        Scanner fileIn = openFile(fileName);
-        Manageable m = null;
-        while (fileIn.hasNext()) {
-            m.read(fileIn);
-            informationList.add(m);
+    private void run() throws IOException {
+        readAllPatientId("storage/Account/patients");
+        for (String patientId : patientIdList) {
+            readAllPatient("storage/Account/patients/" + patientId + "/info.txt");
         }
     }
 
-    private Scanner openFile(String fileName) {
-        Scanner fileIn = null;
-        try {
-            fileIn = new Scanner(new File(fileName));
-        } catch (IOException e) {
-            System.out.println("파일 오픈 실패 " + fileName);
-            System.exit(0);
+    private BufferedReader readAllFile(String filePath) throws IOException {
+        FileInputStream fileInputStream = new FileInputStream(filePath);
+        InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+        return bufferedReader;
+    }
+
+    private void readAllPatientId(String folderName) {
+        File patientFolder = new File(folderName);
+        for (File file : patientFolder.listFiles()) {
+            if (file.isDirectory()) {
+                patientIdList.add(file.getName());
+            }
         }
-        return fileIn;
+    }
+
+    private void readAllPatient(String filePath) throws IOException {
+        BufferedReader patientReader = readAllFile(filePath);
+        String line = "";
+        Patient patient = new Patient();
+        while((line = patientReader.readLine()) != null) {
+            patientList.put(line, patient);
+        }
+        patientReader.close();
+    }
+
+    private void readAllHospitalId(String fileName) {
+        File hospitalFolder = new File(fileName);
+        for (File file : hospitalFolder.listFiles()) {
+            if (file.isDirectory()) {
+                hospitalIdList.add(file.getName());
+            }
+        }
+    }
+
+    private void readAllHospital(String filePath) throws IOException {
+        BufferedReader hospitalReader = readAllFile(filePath);
+        String line = "";
+        Hospital hospital = new Hospital();
+        while((line = hospitalReader.readLine()) != null) {
+            hospitalList.add(hospital);
+        }
+        hospitalReader.close();
+    }
+
+
+
+    public static void main (String[] args) throws IOException {
+        ServerApplication serverApplication = new ServerApplication();
+        serverApplication.run();
     }
 }

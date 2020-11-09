@@ -3,24 +3,22 @@ package main.domain;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 
 public class Hospital implements Manageable {
     private String hospitalId;
     private String password;
-    private String name;
+    private String hospitalName;
     private String phoneNumber;
     private String address;
-    private ArrayList<LocalDateTime> careTimes;
+    private String boundary;
+    private String careTimes;
 
-    public void read(Scanner scan) {
-        try {
-            hospitalId = scan.next();
-            password = scan.next();
-            name = scan.next();
-            phoneNumber = scan.next();
-            address = scan.next();
-        } catch (Exception e) {
-            //
-        }
+    public void read(StringTokenizer dataTokenizer) {
+        hospitalId = dataTokenizer.nextToken();
+        hospitalName = dataTokenizer.nextToken();
+        phoneNumber = dataTokenizer.nextToken();
+        address = dataTokenizer.nextToken();
+        careTimes = dataTokenizer.nextToken();;
     }
 }
