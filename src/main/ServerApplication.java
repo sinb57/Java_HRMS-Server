@@ -11,14 +11,18 @@ public class ServerApplication {
 
     private Scanner scan = new Scanner(System.in);
     public static HashMap<String, Patient> patientList = new HashMap<>();
-    public static ArrayList<Hospital> hospitalList = new ArrayList<>();
-    public ArrayList<String> patientIdList = new ArrayList<>();
-    public ArrayList<String> hospitalIdList = new ArrayList<>();
+    public static List<Hospital> hospitalList = new ArrayList<>();
+    public List<String> patientIdList = new ArrayList<>();
+    public List<String> hospitalIdList = new ArrayList<>();
 
     private void run() throws IOException {
         readAllPatientId("storage/Account/patients");
+        readAllHospitalId("storage/Account/hospitals");
         for (String patientId : patientIdList) {
             readAllPatient("storage/Account/patients/" + patientId + "/info.txt");
+        }
+        for (String hospitalId : hospitalIdList) {
+            readAllPatient("storage/Account/hospitals/" + hospitalId + "/info.txt");
         }
     }
 
