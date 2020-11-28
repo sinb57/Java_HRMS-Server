@@ -1,14 +1,16 @@
 package main.domain;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 
+import main.collectInterface.Account;
 
-public class Hospital implements Manageable {
+
+public class Hospital implements Account {
     private String hospitalId;
     private String password;
     private String hospitalName;
@@ -16,20 +18,33 @@ public class Hospital implements Manageable {
     private String address;
     private String[] careTypeList;
     private CareTime[] careTimeList = new CareTime[7];
+	private ArrayList<Reservation> reservationList = new ArrayList<>();
 
-    public void read(BufferedReader hospitalReader) throws IOException {
-        hospitalId = hospitalReader.readLine().trim();
-        password = hospitalReader.readLine().trim();
-        hospitalName = hospitalReader.readLine().trim();
-        phoneNumber = hospitalReader.readLine().trim();
-        address = hospitalReader.readLine().trim();
-        careTypeList = hospitalReader.readLine().trim().split(" ");
-        
+    public void read(Scanner scanner) {
+        hospitalId = scanner.nextLine().trim();
+        password = scanner.nextLine().trim();
+        hospitalName = scanner.nextLine().trim();
+        phoneNumber = scanner.nextLine().trim();
+        address = scanner.nextLine().trim();
+        careTypeList = scanner.nextLine().trim().split(" ");
         for (int i=0; i<7; i++) {
         	careTimeList[i] = new CareTime();
-        	careTimeList[i].read(hospitalReader);
+        	careTimeList[i].read(scanner);
         }
-        
+    }
+    
+    public void addReservation(Reservation reservation) {
+    	reservationList.add(reservation);
+    }
+    
+    public int getSizeOfReservationList(String reservationDate, String reservationTime) {
+    	int sizeOfReservationList = 0;
+    	for (Reservation reservation : reservationList) {
+    		if (reservation.matchesDateTime(reservationDate, reservationTime)) {
+    			sizeOfReservationList++;
+    		}
+    	}
+    	return sizeOfReservationList;
     }
     
 	public boolean modifyPassword(String passwdFrom, String passwdTo) {
@@ -41,21 +56,54 @@ public class Hospital implements Manageable {
 		return false;
 	}
     
-	public boolean matches(String keyword) {
-		if (hospitalName.contains(keyword))
-			return true;
+	public boolean matches(String address, String careType, String state, String keywords) {
 
-		return false;
+		// 주소 확인
+		if (address != null) {
+			if (this.address.indexOf(address) != 0)
+				return false;
+		}
+		
+		// 진료과목 확인
+		if (careType.equals("전체") == false) {
+			if (containsCareType(careType) == false)
+				return false;
+		}
+		
+		// 영업중 확인
+		if (state.equals("전체") == false) {
+			if (getStateNow().equals(state) == false)
+				return false;
+		}
+		
+		// 병원명 확인
+		if (keywords != null) {
+			String[] keywordList = keywords.split(" ");
+			if (searchHospitalName(keywordList) == false)
+				return false;
+		}
+
+		return true;
 	}
-
-	public boolean matches(String[] keywordList) {
-		for (String keyword: keywordList)
-			if (this.matches(keyword))
-				return true;
-
-		return false;
-	}
+	
+	
     
+	private boolean containsCareType(String keyword) {
+		for (String careType: careTypeList) {
+			if (careType.equals(keyword))
+				return true;
+		}
+		return false;
+	}	
+    
+	private boolean searchHospitalName(String[] keywordList) {
+		for (String keyword: keywordList) {
+			if (hospitalName.contains(keyword))
+				return true;
+		}
+		return false;
+	}
+	
     public boolean equalsPassword(String password) {
     	if (this.password.equalsIgnoreCase(password))
 			return true;
@@ -68,12 +116,13 @@ public class Hospital implements Manageable {
     	
     	switch(state) {
     	case 0:
-    		return "Open";
-    	case 1: // 휴무
-    	case 2: // 영업시간 X
-    		return "Close";
+    		return "영업중";
+    	case 1:
+    		return "휴무";
+    	case 2:
+    		return "영업마감";
     	case 3:
-    		return "Lunch";
+    		return "식사중";
     	default:
     		return "비정상";
     	}
@@ -105,46 +154,6 @@ public class Hospital implements Manageable {
     }
     
     
-    
-    
-    
-    // Temporary Method -> Drop after GUI linked
-    public void print() {
-    	String padding = "           ";
-    	System.out.printf("[%s]\t이름: %s / phone: %s [%s]", hospitalId, hospitalName, phoneNumber, getStateNow());
-    	System.out.println();
-    	
-    	System.out.printf(padding + "진료과목 ");
-    	for (String careType: careTypeList)
-    		System.out.print(careType + " ");
-    	System.out.println();
-
-    	System.out.println();
-    }
-
-    // Temporary Method -> Drop after GUI linked
-    public void printDetail() {
-    	String padding = "           ";
-    	System.out.printf("[%s]\t이름: %s / phone: %s", hospitalId, hospitalName, phoneNumber);
-    	System.out.println();
-    	
-    	System.out.printf(padding + "주소: %s", address);
-    	System.out.println();
-    	
-    	System.out.printf(padding + "진료과목 ");
-    	for (String careType: careTypeList)
-    		System.out.print(careType + " ");
-    	System.out.println();
-    	
-    	System.out.println(padding + "진료시간");
-    	for (CareTime careTime: careTimeList) {
-    		System.out.print(padding);
-    		careTime.print();
-    	}
-    	
-    	System.out.println();
-    }
-    
     public String getData() {
     	String data = "";
         data += hospitalId + "\n";
@@ -163,6 +172,12 @@ public class Hospital implements Manageable {
 
         return data;
     }
+    
+
+	@Override
+    public String getId() {
+    	return hospitalId;
+    }
 
     class CareTime {
     	private String dayOfWeek;
@@ -174,8 +189,8 @@ public class Hospital implements Manageable {
     	private boolean hasLunchTime;
     	private String rawData;
     	
-    	void read(BufferedReader careTimeReader) throws IOException {
-    		rawData = careTimeReader.readLine();
+    	void read(Scanner scanner) {
+    		rawData = scanner.nextLine();
             StringTokenizer tokenizer = new StringTokenizer(rawData," ");
         	DateTimeFormatter formatter  = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -269,5 +284,6 @@ public class Hospital implements Manageable {
     		return rawData;
     	}
     }
+
     
 }

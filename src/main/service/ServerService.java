@@ -1,307 +1,235 @@
 package main.service;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.StringTokenizer;
 
+import main.collectInterface.Account;
 import main.domain.Hospital;
-import main.domain.Manageable;
 import main.domain.Patient;
+import main.domain.Reservation;
 
 public class ServerService {
 	
-    public static HashMap<String, Patient> patientMap = new HashMap<>();
-    public static HashMap<String, Hospital> hospitalMap = new HashMap<>();
-    private HashMap<String, Manageable> cookieMap = new HashMap<>();
+	public static PatientManager patientManager = new PatientManager();
+	public static HospitalManager hospitalManager = new HospitalManager();
+	public static ReservationManager reservationManager = new ReservationManager();
+	
+    private HashMap<String, Account> cookieMap = new HashMap<>();
     
     public ServerService() {
+    	
+    	String relativePath = "../storage/Account/";
 
     	try {
-	    	readAllPatient("../storage/Account/patients/");
-	    	readAllHospital("../storage/Account/hospitals/");
+        	patientManager.readAll(relativePath + "patients/");
+	    	hospitalManager.readAll(relativePath + "hospitals/");
+        	reservationManager.readAll(relativePath + "reservations/");
     	}
     	catch (Exception e) {
     		e.printStackTrace();
     		return;
     	}
 
-    }
-    
-    public void printAllPatient() {
-    	System.out.println();
-    	for (String patientId: patientMap.keySet())
-    		patientMap.get(patientId).print();
-    	System.out.println();
-    }
-    
-    public void printAllHospital() {
-    	System.out.println();
-    	for (String hospitalId: hospitalMap.keySet())
-    		hospitalMap.get(hospitalId).print();
-    	System.out.println();
-    }
-    
-
-    private void readAllPatient(String dirPath) throws IOException {
-
-    	String fileName;
-    	String patientId;
-    	Patient patient;
-    	
-        File patientDir = new File(dirPath);
-    	for (File file : patientDir.listFiles()) {
-            if (file.isFile()) {
-            	fileName = file.getName();
-            	patientId = fileName.substring(0, fileName.length()-4);
-            	patient = new Patient();
-            	
-                BufferedReader patientReader = readFile(dirPath + fileName);
-            	patient.read(patientReader);
-                patientReader.close();
-
-                patientMap.put(patientId, patient);
-            }
-        }
-    }
-
-    private void readAllHospital(String dirPath) throws IOException {
-
-    	String fileName;
-    	String hospitalId;
-    	Hospital hospital;
-    	
-    	File hospitalDir = new File(dirPath);
-        for (File file : hospitalDir.listFiles()) {
-            if (file.isFile()) {
-            	fileName = file.getName();
-            	hospitalId = fileName.substring(0, fileName.length()-4);
-            	hospital = new Hospital();
-            	
-                BufferedReader patientReader = readFile(dirPath + fileName);
-                hospital.read(patientReader);
-                patientReader.close();
-
-                hospitalMap.put(hospitalId, hospital);
-            }
-        }
-    }
-        
-    private BufferedReader readFile(String filePath) throws IOException {
-        FileInputStream fileInputStream = new FileInputStream(filePath);
-        InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
-        BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-        return bufferedReader;
-    }
-
+    }    
 
     
 	public String login(StringTokenizer requestData) {
 		
 		String userId = requestData.nextToken();
 		String userPw = requestData.nextToken();
-		String encryptedPassword = "";
 		
 		try {
-			encryptedPassword = getEncryptedPassword(userPw);
+			userPw = getEncryptedPassword(userPw);
 		} catch (Exception e) {
 			return null;
 		}
 		
-		for (String patientId : patientMap.keySet()) {
-			if (patientId.equals(userId)) {
-				Patient patient = patientMap.get(patientId);
-				if (patient.equalsPassword(encryptedPassword)) {
-					String cookie = makeCookie();
-					cookieMap.put(cookie, patient);
-					return cookie;
-				}
-			}
-		}
+		Account user = null;
 		
-		for (String hospitalId : hospitalMap.keySet()) {
-			if (hospitalId.equals(userId)) {
-				Hospital hospital = hospitalMap.get(hospitalId);
-				if (hospital.equalsPassword(userPw)) {
-					String cookie = makeCookie();
-					cookieMap.put(cookie, hospital);
-					return cookie;
-				}
-			}
+		user = patientManager.searchWithId(userId);
+		if (user == null)
+			user = hospitalManager.searchWithId(userId);
+		if (user == null)
+			return null;
+		
+		if (user.equalsPassword(userPw)) {
+			String cookie = makeCookie();
+			cookieMap.put(cookie, user);
+			return cookie;
 		}
 		
 		return null;
 	}
 	
-	
-	public Manageable getInfo(StringTokenizer tokenizer) {
-		String cookie = tokenizer.nextToken();
+	public boolean join(StringTokenizer requestData) {
 		
-		return cookieMap.get(cookie);
-	}
-
-	public ArrayList<Hospital> searchHospitalList(int pageNum, StringTokenizer tokenizer) {
-
-		ArrayList<Hospital> hospitalList = new ArrayList<>();
-		Hospital hospital = null;
-		String cookie = "";
-		boolean isSelectedOnlyOpened = false;
-		
-		if (tokenizer.hasMoreTokens()) {
-			cookie = tokenizer.nextToken();
-			if (cookieMap.containsKey(cookie) == false)
-				return null;
+		try {
+			Patient patient = new Patient();
+			patient.read(requestData);
+			return true;
 		}
-		
-		if (tokenizer.hasMoreTokens()) {
-			if (tokenizer.nextToken().equals("true"))
-				isSelectedOnlyOpened = true;
-		}
-		
-		// keyword가 있으면
-		if (tokenizer.hasMoreTokens()) {
-				
-			String keywords = tokenizer.nextToken();
-			String[] keywordList = keywords.split(" ");
-
-			for (String hospitalId: hospitalMap.keySet()) {
-				if (hospitalList.size() > pageNum*5)
-					break;
-				
-				hospital = hospitalMap.get(hospitalId);
-
-				if (isSelectedOnlyOpened) {
-					if (hospital.isOpenNow() != 0)
-						continue;
-				}
-				
-				if (hospital.matches(keywordList))
-					hospitalList.add(hospital);
-			}
-		}
-		// keyword가 없으면
-		else {
-			for (String hospitalId: hospitalMap.keySet()) {
-				hospital = hospitalMap.get(hospitalId);
-
-				if (isSelectedOnlyOpened) {
-					if (hospital.isOpenNow() != 0)
-						continue;
-				}
-
-				hospitalList.add(hospital);
-				if (hospitalList.size() > pageNum*5-1)
-					break;
-			}
-		}
-		
-		for (int i=0; i<(pageNum-1)*5; i++)
-			hospitalList.remove(0);
-		
-		return hospitalList;
-	}
-	
-	public Hospital getHospitalInfo(String hospitalId, StringTokenizer tokenizer) {
-		if (tokenizer.hasMoreTokens()) {
-			String cookie = tokenizer.nextToken();
-			
-			if (cookieMap.containsKey(cookie) == false)
-				return null;
-			
-			Hospital hospital = hospitalMap.get(hospitalId);
-			
-			return hospital;
-		}
-		return null;
-	}
-	
-	public boolean makeReservation(String hospitalId, StringTokenizer tokenizer) {
-		if (tokenizer.hasMoreTokens()) {
-			String cookie = tokenizer.nextToken();
-			
-			Manageable user = cookieMap.get(cookie);
-			
-			if (user == null)
-				return false;
-			
-			String className = user.getClass().toString();
-			
-			if (className.contains("Patient")) {
-				// Make a Reservation
-				
-				return true;
-			}
+		catch (Exception e) {
+			e.printStackTrace();
 		}
 		return false;
 	}
 	
 
 	public boolean modifySelfInfo(StringTokenizer tokenizer) {
+		
 		if (tokenizer.hasMoreTokens()) {
 			String cookie = "";
 			String passwdFrom = "";
 			String passwdTo = "";
 			
-			if (tokenizer.hasMoreElements())
-				cookie= tokenizer.nextToken();
-			else
-				return false;
-			
-			if (tokenizer.hasMoreElements())
-				passwdFrom = tokenizer.nextToken();
-			else
-				return false;
-			
-			if (tokenizer.hasMoreElements())
-				passwdTo = tokenizer.nextToken();
-			else
-				return false;
-			
-			Manageable user = cookieMap.get(cookie);
-			
-			if (user == null)
-				return false;
-			
-			String encryptedPassword = "";
-			
 			try {
-				encryptedPassword = getEncryptedPassword(passwdFrom);
-			} catch (Exception e) {
+				cookie = tokenizer.nextToken();
+				passwdFrom = tokenizer.nextToken();
+				passwdTo = tokenizer.nextToken();
+			
+				Account user = cookieMap.get(cookie);
+				
+				if (user == null)
+					return false;
+				
+				String encryptedPassword = getEncryptedPassword(passwdFrom);
+				
+				if (user.modifyPassword(encryptedPassword, passwdTo))
+					return true;
+			
+			}
+			catch (Exception e) {
+				e.printStackTrace();
 				return false;
 			}
-			
-			
-			if (user.modifyPassword(encryptedPassword, passwdTo))
-				return true;
-			
 		}
 		return false;
 	}
+	
+	public Account getManageable(StringTokenizer tokenizer) {
+		String cookie = tokenizer.nextToken();
+		
+		return getManageable(cookie);
+	}
+	
+	public Account getManageable(String cookie) {
+		return cookieMap.get(cookie);
+	}
 
-	public boolean deleteReservation(String patientId, StringTokenizer tokenizer) {
+	public ArrayList<Hospital> searchHospitalList(int pageNum, StringTokenizer tokenizer) {
+
+		ArrayList<Hospital> searchedList = new ArrayList<>();
+		String cookie = "";
+		
+		if (tokenizer.hasMoreTokens()) {
+			cookie = tokenizer.nextToken();
+			if (cookieMap.containsKey(cookie) == false)
+				return null;
+		
+			searchedList = hospitalManager.searchWithKeywords(tokenizer);
+			
+			if (searchedList.size() > pageNum*5) {
+				return new ArrayList<>(searchedList.subList((pageNum-1)*5, pageNum*5));
+			}
+			else if (searchedList.size() < (pageNum-1)*5) {
+				return null;
+			}
+			else {
+				return new ArrayList<>(searchedList.subList((pageNum-1)*5, searchedList.size()-1));
+			}
+			
+		}
+		return null;
+	}
+	
+	public Hospital getHospitalInfo(String hospitalId, StringTokenizer tokenizer) {
+
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			if (cookieMap.containsKey(cookie) == false)
+				return null;
+			
+			return hospitalManager.searchWithId(hospitalId);
+		}
+		return null;
+	}
+	
+	
+	public boolean makeReservation(String hospitalId, StringTokenizer tokenizer) {
 		if (tokenizer.hasMoreTokens()) {
 			String cookie = tokenizer.nextToken();
 			
-			Manageable user = cookieMap.get(cookie);
+			Account user = cookieMap.get(cookie);
+			
+			if (user == null || user instanceof Hospital)
+				return false;
+
+			return reservationManager.addReservation((Patient) user, hospitalId, tokenizer);
+		}
+		return false;
+	}
+	
+
+	public boolean deleteReservation(String objectId, StringTokenizer tokenizer) {
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			
+			Account user = cookieMap.get(cookie);
 		
 			if (user == null)
 				return false;
 			
-			String className = user.getClass().toString();
+			String userId = user.getId();
 			
-			if (className.contains("Hospital")) {
-				// Drop the Reservation of Specific patient
-				
+			if (user instanceof Patient) {
+				reservationManager.delReservationByPatient(userId, objectId, tokenizer);
+				return true;
+			}
+			else {
+				reservationManager.delReservationByHospital(userId, objectId, tokenizer);				
 				return true;
 			}
 		}
 		return false;
+	}
+
+	public ArrayList<Reservation> getReservationList(int pageNum, StringTokenizer tokenizer) {
+
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			if (cookieMap.containsKey(cookie) == false)
+				return null;
+		
+			Patient patient = (Patient) cookieMap.get(cookie);
+			
+			ArrayList<Reservation> reservationList = patient.getReservationList();
+			
+			if (reservationList.size() > pageNum*5) {
+				return new ArrayList<>(reservationList.subList((pageNum-1)*5, pageNum*5));
+			}
+			else if (reservationList.size() < (pageNum-1)*5) {
+				return null;
+			}
+			else {
+				return new ArrayList<>(reservationList.subList((pageNum-1)*5, reservationList.size()-1));
+			}
+		}
+		return null;
+	}
+	public Reservation getReservationInfo(String hospitalId, StringTokenizer tokenizer) {
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			if (cookieMap.containsKey(cookie) == false)
+				return null;
+			
+			Patient patient = (Patient) cookieMap.get(cookie);
+			
+			return patient.searchReservation(hospitalId, tokenizer);
+		}
+		return null;
 	}
 
 	
@@ -335,7 +263,7 @@ public class ServerService {
 	}
 	
 	
-	public String getEncryptedPassword(String password) throws Exception {
+	private String getEncryptedPassword(String password) throws Exception {
 	     
 		String MD5 = ""; 
 
@@ -350,10 +278,6 @@ public class ServerService {
 
 		return MD5;
 
-	}
-	
-	public Manageable getManagebleInfo(String cookie) {
-		return cookieMap.get(cookie);
 	}
 
 }

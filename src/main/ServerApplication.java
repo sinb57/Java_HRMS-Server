@@ -12,10 +12,6 @@ public class ServerApplication {
     
     private void run() throws IOException {
     	server.startServer(9999);
-    	
-    	// service.printAllHospital();
-    	// service.printAllPatient();
-
     }
 
 
