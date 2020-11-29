@@ -172,8 +172,20 @@ public class ServerService {
 		return false;
 	}
 	
+	public boolean processReservaiton(String patientId, StringTokenizer tokenizer) {
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			
+			Hospital hospital = (Hospital) cookieMap.get(cookie);
+		
+			reservationManager.processReservation(hospital, patientId, tokenizer);	
+			
+			return true;
+		}
+		return false;
+	}
 
-	public boolean deleteReservation(String objectId, StringTokenizer tokenizer) {
+	public boolean cancelReservation(String objectId, StringTokenizer tokenizer) {
 		if (tokenizer.hasMoreTokens()) {
 			String cookie = tokenizer.nextToken();
 			
@@ -185,18 +197,18 @@ public class ServerService {
 			String userId = user.getId();
 			
 			if (user instanceof Patient) {
-				reservationManager.delReservationByPatient(userId, objectId, tokenizer);
+				reservationManager.cancelReservationByPatient(userId, objectId, tokenizer);
 				return true;
 			}
 			else {
-				reservationManager.delReservationByHospital(userId, objectId, tokenizer);				
+				reservationManager.cancelReservationByHospital(userId, objectId, tokenizer);				
 				return true;
 			}
 		}
 		return false;
 	}
 
-	public ArrayList<Reservation> getReservationList(int pageNum, StringTokenizer tokenizer) {
+	public ArrayList<Reservation> getReservationListForPatient(int pageNum, StringTokenizer tokenizer) {
 
 		if (tokenizer.hasMoreTokens()) {
 			String cookie = tokenizer.nextToken();
@@ -219,6 +231,42 @@ public class ServerService {
 		}
 		return null;
 	}
+	
+	public ArrayList<Reservation> getReservationListForHospital(StringTokenizer tokenizer) {
+		
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			if (cookieMap.containsKey(cookie) == false)
+				return null;
+		
+			Hospital hospital = (Hospital) cookieMap.get(cookie);
+
+			ArrayList<Reservation> reservationList = hospital.searchReservationList(tokenizer);
+			
+			return reservationList;
+		}
+		return null;
+	}
+	
+	public ArrayList<Reservation> getReservationListOfPatientForHospital(String patientId, StringTokenizer tokenizer) {
+		
+		if (tokenizer.hasMoreTokens()) {
+			String cookie = tokenizer.nextToken();
+			if (cookieMap.containsKey(cookie) == false)
+				return null;
+		
+			Hospital hospital = (Hospital) cookieMap.get(cookie);
+			
+			Patient patient = patientManager.searchWithId(patientId);
+			
+			ArrayList<Reservation> reservationList = patient.getReservationList(hospital.getId());
+			
+			return reservationList;
+		}
+		return null;
+		
+	}
+	
 	public Reservation getReservationInfo(String hospitalId, StringTokenizer tokenizer) {
 		if (tokenizer.hasMoreTokens()) {
 			String cookie = tokenizer.nextToken();

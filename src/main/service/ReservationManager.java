@@ -5,6 +5,7 @@ import java.util.Scanner;
 import java.util.StringTokenizer;
 
 import main.collectInterface.Manager;
+import main.domain.Hospital;
 import main.domain.Patient;
 import main.domain.Reservation;
 
@@ -31,18 +32,36 @@ public class ReservationManager implements Manager {
 	}
 	
 	public boolean addReservation(Patient patient, String hospitalId, StringTokenizer tokenizer) {
-    	
     	Reservation reservation = new Reservation();
 
-    	return reservation.read(patient.getId(), hospitalId, tokenizer);
+    	String reservationDate = tokenizer.nextToken().trim();
+    	String reservationTime = tokenizer.nextToken().trim();
+
+    	Hospital hospital = ServerService.hospitalManager.searchWithId(hospitalId);
+    	int sizeOfReservationList = hospital.getSizeOfReservationList(reservationDate, reservationTime);
+    	
+    	if (sizeOfReservationList < 4) {
+        	reservation.read(patient.getId(), hospitalId, reservationDate, reservationTime, tokenizer);
+
+        	return true;
+    	}
+    	return false;
 	}
 	
-	public void delReservationByPatient(String patientId, String hospitalId, StringTokenizer tokenizer) {
+	public void processReservation(Hospital hospital, String patientId, StringTokenizer tokenizer) {
+
+		Reservation reservation = hospital.searchReservation(patientId, tokenizer);
+		
+		reservation.updateToBeTreated(tokenizer);
+
+	}
+	
+	public void cancelReservationByPatient(String patientId, String hospitalId, StringTokenizer tokenizer) {
 		Patient patient = ServerService.patientManager.searchWithId(patientId);
 		patient.cancelReservation("예약취소", hospitalId, tokenizer);
 		
 	}
-	public void delReservationByHospital(String hospitalId, String patientId, StringTokenizer tokenizer) {
+	public void cancelReservationByHospital(String hospitalId, String patientId, StringTokenizer tokenizer) {
 		Patient patient = ServerService.patientManager.searchWithId(patientId);
 		patient.cancelReservation("예약취소됨", hospitalId, tokenizer);
 		

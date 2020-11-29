@@ -42,13 +42,13 @@ public class Patient implements Account {
 		String reservationTime = tokenizer.nextToken();
 		
 		for (Reservation reservation : reservationList)
-			if (reservation.matches(hospitalId, reservationDate, reservationTime))
+			if (reservation.matches(hospitalId, reservationDate, reservationTime, true))
 				return reservation;
 
 		return null;
     }
     
-    public void sortReservationList() {
+    public void sortReservationList(ArrayList<Reservation> reservationList) {
     	ArrayList<Reservation> tmpList1 = new ArrayList<>();
     	ArrayList<Reservation> tmpList2 = new ArrayList<>();
     	
@@ -97,19 +97,27 @@ public class Patient implements Account {
     }
     
     public ArrayList<Reservation> getReservationList() {
-    	sortReservationList();
+    	sortReservationList(this.reservationList);
     	return reservationList;
     }
     
-
-    public String getReservationDatas() {
-    	sortReservationList();
-    	
-    	String data = "";
+    public ArrayList<Reservation> getReservationList(String hospitalId) {
+    	ArrayList<Reservation> tmpList = new ArrayList<>();
     	for (Reservation reservation: reservationList) {
-    		data += reservation.getData();
+    		if (reservation.matchesHospitalId(hospitalId))
+    			tmpList.add(reservation);
     	}
-    	return data;
+    		
+    	sortReservationList(tmpList);
+    	return tmpList;
+    }
+    
+    public String getName() {
+    	return patientName;
+    }
+    
+    public String getPhoneNumber() {
+    	return phoneNumber;
     }
 }
 

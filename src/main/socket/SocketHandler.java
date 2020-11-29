@@ -15,7 +15,9 @@ public class SocketHandler {
 	public String apiMapping(String requestData) {
 
 		String responseData = "";
-
+		System.out.println(requestData);
+		System.out.println("----------------------------");
+		
 		StringTokenizer tokenizer = new StringTokenizer(requestData, "\n"); 
 		String requestHeader = tokenizer.nextToken();
 		
@@ -35,7 +37,8 @@ public class SocketHandler {
 			responseData = mappingTypeDelete(headerPieces[1], tokenizer);
 			break;
 		}
-		
+		System.out.println(responseData);
+		System.out.println("----------------------------");
 		return responseData;
 	}
 	
@@ -50,7 +53,7 @@ public class SocketHandler {
 		}
 		
 		// request hospital list
-		else if (uri.indexOf("/hospitals/list") == 0) {
+		else if (uri.indexOf("/hospitals/list/") == 0) {
 			
 			int pageNum = Integer.parseInt(uri.split("/")[3]);
 			
@@ -58,7 +61,7 @@ public class SocketHandler {
 		}
 		
 		// request hospital info
-		else if (uri.indexOf("/hospitals/info") == 0) {
+		else if (uri.indexOf("/hospitals/info/") == 0) {
 			
 			String hospitalId = uri.split("/")[3];
 			
@@ -66,22 +69,34 @@ public class SocketHandler {
 		}
 		
 		// request reservation List from patient
-		else if (uri.indexOf("/patients/reservations/list") == 0) {
+		else if (uri.indexOf("/patients/reservations/list/") == 0) {
 			
 			int pageNum = Integer.parseInt(uri.split("/")[4]);
 			
-			responseData = responseReservationList(pageNum, tokenizer);
+			responseData = responseReservationListToPatient(pageNum, tokenizer);
 		}
 				
 		// request reservation info from patient
-		else if (uri.indexOf("/patients/reservations/info") == 0) {
+		else if (uri.indexOf("/patients/reservations/info/") == 0) {
 			
 			String hospitalId = uri.split("/")[4];
 			
 			responseData = responseReservationInfo(hospitalId, tokenizer);
 		}
 		
-				
+		// request reservation List of specific patient from hospital
+		else if (uri.indexOf("/hospitals/reservations/list/") == 0) {
+			
+			String patientId = uri.split("/")[4];
+			
+			responseData = responseReservationListOfPatientTohospital(patientId, tokenizer);
+		}
+		
+		// request reservation List from hospital
+		else if (uri.indexOf("/hospitals/reservations/list") == 0) {
+			
+			responseData = responseReservationListToHospital(tokenizer);
+		}
 		
 		return responseData;
 	}
@@ -101,10 +116,17 @@ public class SocketHandler {
 		}
 		
 		// make a reservation
-		else if (uri.indexOf("/patients/reservations") == 0) {
+		else if (uri.indexOf("/patients/reservations/") == 0) {
 			String hospitalId = uri.split("/")[3];
 
 			responseData = makeReservation(hospitalId, tokenizer);
+		}
+		
+		// process a reservation
+		else if (uri.indexOf("/hospitals/reservations/") == 0) {
+			String patientId = uri.split("/")[3];
+			
+			responseData = processReservation(patientId, tokenizer);
 		}
 		
 		return responseData;
@@ -129,7 +151,7 @@ public class SocketHandler {
 		String responseData = null;
 
 		// Delete Reservation By Patient
-		if (uri.indexOf("/patients/reservations") == 0) {
+		if (uri.indexOf("/patients/reservations/") == 0) {
 			
 			String objectId = uri.split("/")[3];
 			
@@ -137,7 +159,7 @@ public class SocketHandler {
 		}
 
 		// Delete Reservation By Hospital
-		else if (uri.indexOf("/hospitals/reservations") == 0) {
+		else if (uri.indexOf("/hospitals/reservations/") == 0) {
 			
 			String objectId = uri.split("/")[3];
 			
@@ -194,9 +216,9 @@ public class SocketHandler {
 		return responseData;
 	}
 	
-	private String responseReservationList(int pageNum, StringTokenizer tokenizer) {
+	private String responseReservationListToPatient(int pageNum, StringTokenizer tokenizer) {
 		
-		ArrayList<Reservation> reservationList = service.getReservationList(pageNum, tokenizer);
+		ArrayList<Reservation> reservationList = service.getReservationListForPatient(pageNum, tokenizer);
 		
 		if (reservationList == null || reservationList.size() == 0)
 			return "Get Reservation List Failed";
@@ -204,11 +226,42 @@ public class SocketHandler {
 		String responseData = "";
 		responseData += "Get Reservation List Success\n";
 		for (Reservation reservation: reservationList)
-			responseData += reservation.getDataForSocket();
+			responseData += reservation.getData();
 
 		return responseData;
-		
 	}
+	
+	private String responseReservationListToHospital(StringTokenizer tokenizer) {
+
+		ArrayList<Reservation> reservationList = service.getReservationListForHospital(tokenizer);
+		
+		if (reservationList == null || reservationList.size() == 0)
+			return "Get Reservation List Failed";
+		
+		String responseData = "";
+		responseData += "Get Reservation List Success\n";
+		for (Reservation reservation: reservationList)
+			responseData += reservation.getData();
+
+		return responseData;
+	}
+	
+	private String responseReservationListOfPatientTohospital(String patientId, StringTokenizer tokenizer) {
+		
+		ArrayList<Reservation> reservationList = service.getReservationListOfPatientForHospital(patientId, tokenizer);
+
+		if (reservationList == null || reservationList.size() == 0)
+			return "Get Reservation List Failed";
+		
+		String responseData = "";
+		responseData += "Get Reservation List Success\n";
+		for (Reservation reservation: reservationList)
+			responseData += reservation.getData();
+
+		return responseData;
+	}
+	
+	
 	private String responseReservationInfo(String hospitalId, StringTokenizer tokenizer) {
 
 		Reservation reservation = service.getReservationInfo(hospitalId, tokenizer);
@@ -218,7 +271,7 @@ public class SocketHandler {
 		
 		String responseData = "";
 		responseData += "Get Reservation Info Success\n";
-		responseData += reservation.getDataForSocket();
+		responseData += reservation.getData();
 		
 		return responseData;
 	}
@@ -264,6 +317,13 @@ public class SocketHandler {
 		return "Make Reservation Failed";
 	}
 	
+	private String processReservation(String patientId, StringTokenizer tokenizer) {
+		
+		if (service.processReservaiton(patientId, tokenizer))
+			return "Process Reservation Successed";
+		
+		return "Process Reservation Failed";
+	}
 	
 	private String modifySelfInfo(StringTokenizer tokenizer) {
 		
@@ -276,7 +336,7 @@ public class SocketHandler {
 	
 	private String deleteReservation(String objectId, StringTokenizer tokenizer) {
 
-		if (service.deleteReservation(objectId, tokenizer))
+		if (service.cancelReservation(objectId, tokenizer))
 			return "Delete Reservation Successed";
 		
 		return "Delete Reservation Failed";

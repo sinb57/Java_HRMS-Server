@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
@@ -16,7 +17,7 @@ public class Hospital implements Account {
     private String hospitalName;
     private String phoneNumber;
     private String address;
-    private String[] careTypeList;
+    private HashMap<String, String[]> careTypeMap = new HashMap<>();
     private CareTime[] careTimeList = new CareTime[7];
 	private ArrayList<Reservation> reservationList = new ArrayList<>();
 
@@ -26,11 +27,64 @@ public class Hospital implements Account {
         hospitalName = scanner.nextLine().trim();
         phoneNumber = scanner.nextLine().trim();
         address = scanner.nextLine().trim();
-        careTypeList = scanner.nextLine().trim().split(" ");
+        
+        String[] careTypeList = scanner.nextLine().split(" ");
+        
+        for (String careType: careTypeList) {
+        	String[] docterList = scanner.nextLine().trim().split(" ");
+        	careTypeMap.put(careType, docterList);
+        }
+        
         for (int i=0; i<7; i++) {
         	careTimeList[i] = new CareTime();
         	careTimeList[i].read(scanner);
         }
+    }
+    
+    public ArrayList<Reservation> searchReservationList(StringTokenizer tokenizer) {
+    	String[] dateList = tokenizer.nextToken().trim().split(" ");
+    	String searchType = null;
+    	String[] keywordList = null;
+    	
+    	if (tokenizer.hasMoreTokens())
+    		searchType = tokenizer.nextToken().trim();
+    	if (tokenizer.hasMoreTokens())
+    		keywordList = tokenizer.nextToken().trim().split(" ");
+
+    	ArrayList<Reservation> tmpList = new ArrayList<>();
+    	for (Reservation reservation: reservationList) {
+    		if (reservation.belongToPeriod(dateList[0], dateList[1])) {
+    			if (keywordList == null || keywordList.length == 0) {
+    				tmpList.add(reservation);
+    				continue;
+    			}
+			
+    			switch (searchType) {
+    			case "진료의사":
+    				if (reservation.matchesDocter(keywordList))
+    					tmpList.add(reservation);
+    				break;
+    					
+    			case "진료과목":
+    				if (reservation.matchesCareType(keywordList))
+    					tmpList.add(reservation);
+    				break;
+    					
+    			case "이름":
+    				if (reservation.matchesPatientName(keywordList))
+    					tmpList.add(reservation);
+    				break;
+    					
+    			case "번호":
+    				if (reservation.matchesPatientPhoneNumber(keywordList))
+    					tmpList.add(reservation);
+    				break;
+    				
+    			}
+			}
+    	}
+    	
+    	return tmpList;
     }
     
     public void addReservation(Reservation reservation) {
@@ -46,6 +100,18 @@ public class Hospital implements Account {
     	}
     	return sizeOfReservationList;
     }
+    
+    public Reservation searchReservation(String patientId, StringTokenizer tokenizer) {
+		String reservationDate = tokenizer.nextToken();
+		String reservationTime = tokenizer.nextToken();
+		
+		for (Reservation reservation : reservationList)
+			if (reservation.matches(patientId, reservationDate, reservationTime, false))
+				return reservation;
+
+		return null;
+    }
+    
     
 	public boolean modifyPassword(String passwdFrom, String passwdTo) {
 		if (equalsPassword(passwdFrom)) {
@@ -89,7 +155,7 @@ public class Hospital implements Account {
 	
     
 	private boolean containsCareType(String keyword) {
-		for (String careType: careTypeList) {
+		for (String careType: careTypeMap.keySet()) {
 			if (careType.equals(keyword))
 				return true;
 		}
@@ -160,10 +226,17 @@ public class Hospital implements Account {
         data += hospitalName + "\n";
         data += phoneNumber + "\n";
         data += address + "\n";
-        
-        for (String careType: careTypeList)
+
+        for (String careType: careTypeMap.keySet())
         	data += careType + " ";
         data += "\n";
+        
+        for (String careType: careTypeMap.keySet()) {
+        	String[] docterList = careTypeMap.get(careType);
+        	for (String docterName: docterList)
+            	data += docterName + " ";
+            data += "\n";
+        }
         
         for (CareTime careTime: careTimeList) {
         	data += careTime.toString();
@@ -276,8 +349,6 @@ public class Hospital implements Account {
     		else {
     			data += "진료 안함";
     		}
-    		
-    		System.out.println(data);
     	}
     	
     	public String toString() {
