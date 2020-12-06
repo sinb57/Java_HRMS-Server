@@ -3,6 +3,7 @@ package main.service;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 
 import main.collectInterface.Manager;
 import main.domain.Patient;
@@ -30,10 +31,20 @@ public class PatientManager implements Manager {
         }
 	}
 	
+	public void read(StringTokenizer tokenizer) {
+		Patient patient = new Patient();
+		patient.read(tokenizer);
+		patientMap.put(patient.getId(), patient);
+		return;
+	}
+	
 	public Patient searchWithId(String patientId) {		
 		return patientMap.get(patientId);
 	}
 
+	public void remove(Patient patient) {
+		patientMap.remove(patient.getId());
+	}
 
 
 }
