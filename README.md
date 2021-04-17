@@ -6,7 +6,7 @@
   * <a href="#head12">차별화 포인트</a>
   * <a href="#head13">ETC</a>
 * <a href="#head2">시스템 구조 및 기능</a>
-  * <a href="#head21">서버 어플리케이션</a> **([Github: Java_HRMS_Server](https://github.com/sinb57/JavaHRMS-Server))**
+  * <a href="#head21">서버 어플리케이션</a> **([Github: Java_HRMS_Server](https://github.com/sinb57/Java_HRMS-Server))**
   * <a href="#head22">환자 어플리케이션</a> **([Github: Java_HRMS_Patient](https://github.com/sinb57/Java_HRMS-Server))**
   * <a href="#head23">병원 어플리케이션</a> **([Github: Java_HRMS_Hospital](https://github.com/sinb57/Java_HRMS-Server))**
 * <a href="#head3">VIEW</a>
